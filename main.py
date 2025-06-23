@@ -1,130 +1,131 @@
 import os
-import io
 import json
-import base64
 import openai
 import streamlit as st
-import streamlit.components.v1 as components
 
-# -------------------
-# OpenAI API Key Setup
-# -------------------
+# --------------------
+# OpenAI API KEY SETUP
+# --------------------
 api_key_env = os.getenv("OPENAI_API_KEY", "")
-api_key_input = ""
 if not api_key_env:
-    api_key_input = st.text_input("🔑 OpenAI API Key 입력 (sk-...)", type="password")
-openai.api_key = api_key_input or api_key_env
+    api_key_env = st.text_input("🔑 OpenAI API Key (sk-...)", type="password")
+openai.api_key = api_key_env
+
+# ---------------
+# Streamlit Setup
+# ---------------
+st.set_page_config(page_title="KakaoTalk Style GPT-4o Chatbot", layout="centered")
+
+# Inject KakaoTalk-like CSS
+kakao_css = """
+<style>
+/* Chat container */
+#chat-box {
+  max-width: 400px;
+  margin: 0 auto;
+  padding-bottom: 80px; /* space for input */
+}
+/* Message common */
+.message {
+  display: flex;
+  margin: 8px 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+/* User bubble (blue) */
+.user .bubble {
+  margin-left: auto;
+  background: #007AFF;
+  color: white;
+  border-radius: 15px 15px 3px 15px;
+  padding: 8px 12px;
+  max-width: 75%;
+}
+/* Bot bubble (yellow) */
+.bot .bubble {
+  margin-right: auto;
+  background: #FFE812;
+  color: black;
+  border-radius: 15px 15px 15px 3px;
+  padding: 8px 12px;
+  max-width: 75%;
+}
+/* Input box fixed at bottom */
+#input-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: white;
+  padding: 10px 0;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+}
+#input-container input {
+  width: 380px;
+  max-width: 90%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  outline: none;
+  font-size: 15px;
+}
+</style>
+"""
+st.markdown(kakao_css, unsafe_allow_html=True)
+
+# -----------
+# App Header
+# -----------
+st.markdown("<h2 style='text-align:center;'>🟡 KakaoTalk GPT-4o 챗봇</h2>", unsafe_allow_html=True)
+
+# ------------------
+# Session State Init
+# ------------------
+if "messages" not in st.session_state:
+    st.session_state.messages = []  # list of {role, content}
+
+# --------------
+# Chat Container
+# --------------
+with st.container():
+    st.markdown('<div id="chat-box">', unsafe_allow_html=True)
+    for msg in st.session_state.messages:
+        role = msg["role"]
+        content = msg["content"]
+        cls = "user" if role == "user" else "bot"
+        html = f'<div class="message {cls}"><div class="bubble">{content}</div></div>'
+        st.markdown(html, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # -------------------
-# Helper Functions
+# Input Field at Bottom
 # -------------------
+user_input = st.text_input("", key="user_input", label_visibility="collapsed")
 
-def transcribe_audio(audio_bytes: bytes) -> str:
-    """Whisper‑1로 음성 → 텍스트."""
-    audio_file = io.BytesIO(audio_bytes)
-    audio_file.name = "audio.wav"  # 파일명 필요
+if user_input:
+    # Append user message
+    st.session_state.messages.append({"role": "user", "content": user_input})
+
+    # Compose messages for OpenAI API
+    messages_for_api = []
+    for m in st.session_state.messages:
+        messages_for_api.append({"role": m["role"], "content": m["content"]})
+
+    # GPT-4o completion
     try:
-        result = openai.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file,
-            response_format="text",
-            language="ko"
-        )
-        return result  # response_format=text 이면 str 반환
-    except openai.AuthenticationError:
-        st.error("❌ OpenAI API Key가 올바르지 않습니다.")
-        st.stop()
-
-
-def chat_with_gpt(prompt: str, history: list[dict]) -> str:
-    """GPT‑4o로 대화 응답 생성."""
-    messages = []
-    for turn in history:
-        messages.append({"role": "user", "content": turn["user"]})
-        messages.append({"role": "assistant", "content": turn["bot"]})
-    messages.append({"role": "user", "content": prompt})
-    try:
-        response = openai.chat.completions.create(
+        resp = openai.chat.completions.create(
             model="gpt-4o",
-            messages=messages,
+            messages=messages_for_api,
             temperature=0.7,
             max_tokens=200,
         )
-        return response.choices[0].message.content.strip()
-    except openai.AuthenticationError:
-        st.error("❌ OpenAI API Key가 올바르지 않습니다.")
-        st.stop()
+        bot_reply = resp.choices[0].message.content.strip()
+    except Exception as e:
+        bot_reply = f"(오류 발생: {e})"
 
+    # Append bot message and clear input
+    st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+    st.session_state.user_input = ""
 
-def speak(text: str) -> bytes:
-    """우선 OpenAI TTS를 시도하고, 지원되지 않으면 gTTS로 폴백."""
-    try:
-        audio_resp = openai.audio.speech.create(
-            model="gpt-4o-audio-preview",
-            voice="alloy",
-            input=text,
-            response_format="mp3",
-        )
-        return bytes(audio_resp)
-    except (openai.AuthenticationError, openai.APIStatusError, openai.NotFoundError):
-        # OpenAI TTS 사용 불가 → gTTS 폴백
-        from gtts import gTTS
-        import io
-        tts = gTTS(text, lang="ko")
-        buf = io.BytesIO()
-        tts.write_to_fp(buf)
-        buf.seek(0)
-        return buf.read()  # BinaryContent -> bytes
-    except openai.AuthenticationError:
-        st.error("❌ OpenAI API Key가 올바르지 않습니다.")
-        st.stop()
-
-# -------------------
-# Streamlit UI
-# -------------------
-st.set_page_config(page_title="Voice Chatbot: 박종철", layout="centered")
-st.title("🗣️ 1987년 박종철 음성 챗봇")
-
-# 중심 영상 (assets/park_jongchul.mp4 위치에 파일 배치)
-st.video("assets/park_jongchul.mp4", format="video/mp4")
-
-# Session state for conversation
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-# Audio input (Streamlit ≥1.25)
-st.subheader("🎤 마이크 녹음")
-audio_data = st.audio_input("버튼을 눌러 질문을 녹음하세요")
-
-if audio_data:
-    # 1. STT
-    user_text = transcribe_audio(audio_data.getbuffer())
-    st.markdown(f"**🙋‍♂️ 사용자:** {user_text}")
-
-    # 2. ChatGPT‑4o 응답
-    bot_text = chat_with_gpt(user_text, st.session_state.history)
-    st.markdown(f"**🤖 박종철:** {bot_text}")
-
-    # 3. TTS (젊은 남성 음성)
-    mp3_bytes = speak(bot_text)
-    st.audio(mp3_bytes, format="audio/mp3")
-    # 자동 재생
-    b64 = base64.b64encode(mp3_bytes).decode()
-    components.html(f'<audio autoplay src="data:audio/mp3;base64,{b64}"></audio>', height=0)
-
-    # 4. Save to history
-    st.session_state.history.append({"user": user_text, "bot": bot_text})
-
-# Conversation log & copy
-if st.session_state.history:
-    convo = "\n".join([
-        f"사용자: {h['user']}\n박종철: {h['bot']}" for h in st.session_state.history
-    ])
-    st.text_area("📜 대화 내역", value=convo, height=250)
-    if st.button("📋 대화 복사"):
-        escaped = json.dumps(convo)
-        components.html(
-            f"<script>navigator.clipboard.writeText({escaped});</script>",
-            height=0,
-        )
-        st.success("대화 내용이 클립보드에 복사되었습니다.")
+    # Rerun to refresh chat display without duplicate input
+    st.experimental_rerun()
