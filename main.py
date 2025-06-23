@@ -14,7 +14,7 @@ openai.api_key = api_key
 # ---------------
 # Streamlit Setup
 # ---------------
-st.set_page_config(page_title="KakaoTalk Style GPT-4o Chatbot", layout="centered")
+st.set_page_config(page_title="민주화 운동가와의 인터뷰", layout="centered")
 
 # Inject KakaoTalk-like CSS
 st.markdown(
