@@ -5,8 +5,11 @@ import openai
 import streamlit as st
 import streamlit.components.v1 as components
 from gtts import gTTS
+import asyncio
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
-import base64
+
+# Asyncio event loop 초기화 (WebRTC 콜백 오류 방지)
+asyncio.set_event_loop(asyncio.new_event_loop())
 
 
 def transcribe_audio(audio_bytes):
@@ -44,17 +47,15 @@ def chat_with_gpt(prompt, history):
 st.set_page_config(page_title="Voice Chatbot: 박종철", layout="centered")
 st.header("음성 챗봇: 박종철 (1987년 대한민국)")
 
-# 중앙에 영상 재생 (assets/park_jongchul.mp4 파일 필요)
+# 중앙에 영상 재생 (assets/park_jongchul.mp4 필요)
 st.video("assets/park_jongchul.mp4", format="video/mp4")
 
 # 대화 기록 초기화
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# RTC 설정 (음성 전용)
-rtc_configuration = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-)
+# RTC 설정 (STUN 서버 제거하여 오류 방지)
+rtc_configuration = RTCConfiguration({"iceServers": []})
 webrtc_ctx = webrtc_streamer(
     key="voice-chat",
     mode=WebRtcMode.SENDRECV,
@@ -80,9 +81,7 @@ if webrtc_ctx.audio_receiver:
             tts.write_to_fp(mp3_buf)
             mp3_buf.seek(0)
             mp3_bytes = mp3_buf.read()
-            # Streamlit 오디오 플레이어 (클릭 가능)
             st.audio(mp3_bytes, format='audio/mp3')
-            # 자동 재생 HTML 오디오 태그 삽입
             b64 = base64.b64encode(mp3_bytes).decode()
             html_audio = '<audio autoplay><source src="data:audio/mp3;base64,' + b64 + '" type="audio/mp3"></audio>'
             components.html(html_audio, height=0)
@@ -90,7 +89,7 @@ if webrtc_ctx.audio_receiver:
             # 대화 기록 저장
             st.session_state.history.append({"user": user_text, "bot": bot_text})
 
-# 대화 기록 표시 및 복사 기능
+# 대화 기록 표시 및 복사
 if st.session_state.history:
     conversation_text = "\n".join(
         f"User: {h['user']}\nBot: {h['bot']}" for h in st.session_state.history
@@ -102,7 +101,7 @@ if st.session_state.history:
         components.html(js)
         st.success("대화 내용이 클립보드에 복사되었습니다.")
 
-# API 키 설정 확인 및 입력
+# API 키 설정 및 입력
 api_key = os.getenv("OPENAI_API_KEY")
 if api_key:
     openai.api_key = api_key
