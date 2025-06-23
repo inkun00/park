@@ -109,4 +109,4 @@ if copy_clicked:
     </script>
     """
     components.html(js_code, height=0)
-    st.success("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")
+    st.success("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")
