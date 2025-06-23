@@ -38,6 +38,22 @@ st.markdown("<h2 style='text-align:center;'>🟡 KakaoTalk GPT‑4o 챗봇</h2>"
 if "messages" not in st.session_state:
     st.session_state.messages = []  # list of {role, content}
 
+# Random human name once per session
+if "human_name" not in st.session_state:
+    import random
+    names = ["민수", "영호", "철수", "진호", "성민", "동훈"]
+    st.session_state.human_name = random.choice(names)
+
+# System prompt (insert once)
+if not any(m["role"] == "system" for m in st.session_state.messages):
+    system_prompt = (
+        f"너는 80년대 대한민국의 민주화 운동에 참여한 20대 남성이다. "
+        f"너는 인공지능이라는 표현을 절대 사용하지 말고 자신을 사람이라고 설명해라. "
+        f"너의 이름은 {st.session_state.human_name}이다. "
+        f"모든 응답은 두 문장 이내로 해라."
+    )
+    st.session_state.messages.insert(0, {"role": "system", "content": system_prompt})
+
 # --------------
 # Chat Container
 # --------------
@@ -76,4 +92,4 @@ if submitted and user_text:
     st.session_state.messages.append({"role": "assistant", "content": bot_reply})
 
     # Rerun to refresh chat display
-    st.rerun()
+    st.experimental_rerun()
