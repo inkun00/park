@@ -31,7 +31,7 @@ def transcribe_audio(audio_bytes: bytes) -> str:
             language="ko"
         )
         return result  # response_format=text 이면 str 반환
-    except openai.error.AuthenticationError:
+    except openai.AuthenticationError:
         st.error("❌ OpenAI API Key가 올바르지 않습니다.")
         st.stop()
 
@@ -51,7 +51,7 @@ def chat_with_gpt(prompt: str, history: list[dict]) -> str:
             max_tokens=200,
         )
         return response.choices[0].message.content.strip()
-    except openai.error.AuthenticationError:
+    except openai.AuthenticationError:
         st.error("❌ OpenAI API Key가 올바르지 않습니다.")
         st.stop()
 
@@ -66,7 +66,7 @@ def speak(text: str) -> bytes:
             format="mp3",
         )
         return bytes(speech_resp)  # BinaryContent -> bytes
-    except openai.error.AuthenticationError:
+    except openai.AuthenticationError:
         st.error("❌ OpenAI API Key가 올바르지 않습니다.")
         st.stop()
 
