@@ -2,4 +2,4 @@ openai
 streamlit
 gTTS
 streamlit_webrtc
-streamlit-audiorecorder
+streamlit_audiorecorder
