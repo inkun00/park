@@ -5,7 +5,7 @@ import openai
 import streamlit as st
 import streamlit.components.v1 as components
 from gtts import gTTS
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, ClientSettings
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 
 
 def transcribe_audio(audio_bytes):
@@ -50,14 +50,14 @@ st.video("assets/park_jongchul.mp4", format="video/mp4")
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# WebRTC 클라이언트 설정 (음성 전용)
-client_settings = ClientSettings(
+# RTC 설정 (음성 전용)
+rtc_configuration = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 webrtc_ctx = webrtc_streamer(
     key="voice-chat",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration=client_settings,
+    rtc_configuration=rtc_configuration,
     media_stream_constraints={"audio": True, "video": False},
     audio_receiver_size=1024
 )
@@ -66,8 +66,7 @@ webrtc_ctx = webrtc_streamer(
 if webrtc_ctx.audio_receiver:
     frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
     if frames:
-        # 수신된 프레임을 바이트로 변환
-        audio_bytes = b"".join([frame.to_ndarray().tobytes() for frame in frames])
+        audio_bytes = b"".join(frame.to_ndarray().tobytes() for frame in frames)
         user_text = transcribe_audio(audio_bytes)
         if user_text:
             st.markdown(f"**User:** {user_text}")
@@ -75,7 +74,7 @@ if webrtc_ctx.audio_receiver:
             st.markdown(f"**Bot:** {bot_text}")
 
             # TTS 생성 및 재생
-            tts = gTTS(bot_text, lang='ko')  
+            tts = gTTS(bot_text, lang='ko')
             mp3_buf = io.BytesIO()
             tts.write_to_fp(mp3_buf)
             mp3_buf.seek(0)
@@ -86,9 +85,9 @@ if webrtc_ctx.audio_receiver:
 
 # 대화 기록 표시 및 복사 기능
 if st.session_state.history:
-    conversation_text = "\n".join([
+    conversation_text = "\n".join(
         f"User: {h['user']}\nBot: {h['bot']}" for h in st.session_state.history
-    ])
+    )
     st.text_area("Conversation History", value=conversation_text, height=200)
     if st.button("Copy Conversation"):
         escaped = json.dumps(conversation_text)
