@@ -70,8 +70,8 @@ with st.form("chat_form", clear_on_submit=True):
         label_visibility="collapsed",
         placeholder="메시지를 입력하세요",
     )
-    send_clicked = cols[1].form_submit_button("Send")
-    copy_clicked = cols[2].form_submit_button("Copy")
+    send_clicked = cols[1].form_submit_button("입력")
+    copy_clicked = cols[2].form_submit_button("복사")
 
 # ----------  Send Logic ----------
 if send_clicked and user_text:
