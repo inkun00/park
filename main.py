@@ -30,7 +30,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<h2 style='text-align:center;'>🟡 KakaoTalk GPT-4o 챗봇</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align:center;'>🟡 KakaoTalk GPT‑4o 챗봇</h2>", unsafe_allow_html=True)
 
 # ------------------
 # Session State Init
@@ -65,4 +65,15 @@ if submitted and user_text:
         resp = openai.chat.completions.create(
             model="gpt-4o",
             messages=history,
-            temperatu
+            temperature=0.7,
+            max_tokens=200,
+        )
+        bot_reply = resp.choices[0].message.content.strip()
+    except Exception as e:
+        bot_reply = f"(오류: {e})"
+
+    # Append bot reply
+    st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+
+    # Rerun to refresh chat display
+    st.rerun()
