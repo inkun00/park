@@ -14,9 +14,9 @@ openai.api_key = api_key_env
 # ---------------
 # Streamlit Setup
 # ---------------
-st.set_page_config(page_title="KakaoTalk Style GPT-4o Chatbot", layout="centered")
+st.set_page_config(page_title="KakaoTalk Style GPT‑4o Chatbot", layout="centered")
 
-# Inject KakaoTalk-like CSS
+# Inject KakaoTalk‑like CSS
 kakao_css = """
 <style>
 /* Chat container */
@@ -76,7 +76,7 @@ st.markdown(kakao_css, unsafe_allow_html=True)
 # -----------
 # App Header
 # -----------
-st.markdown("<h2 style='text-align:center;'>🟡 KakaoTalk GPT-4o 챗봇</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align:center;'>🟡 KakaoTalk GPT‑4o 챗봇</h2>", unsafe_allow_html=True)
 
 # ------------------
 # Session State Init
@@ -111,7 +111,7 @@ if user_input:
     for m in st.session_state.messages:
         messages_for_api.append({"role": m["role"], "content": m["content"]})
 
-    # GPT-4o completion
+    # GPT‑4o completion
     try:
         resp = openai.chat.completions.create(
             model="gpt-4o",
@@ -122,10 +122,8 @@ if user_input:
         bot_reply = resp.choices[0].message.content.strip()
     except Exception as e:
         bot_reply = f"(오류 발생: {e})"
-
-    # Append bot message and clear input
+    # Append bot message
     st.session_state.messages.append({"role": "assistant", "content": bot_reply})
-    st.session_state.user_input = ""
 
-    # Rerun to refresh chat display without duplicate input
+    # Rerun to refresh chat display
     st.experimental_rerun()
