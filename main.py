@@ -6,6 +6,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from gtts import gTTS
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
+import base64
 
 
 def transcribe_audio(audio_bytes):
@@ -73,12 +74,18 @@ if webrtc_ctx.audio_receiver:
             bot_text = chat_with_gpt(user_text, st.session_state.history)
             st.markdown(f"**Bot:** {bot_text}")
 
-            # TTS 생성 및 재생
+            # TTS 생성 및 자동 재생
             tts = gTTS(bot_text, lang='ko')
             mp3_buf = io.BytesIO()
             tts.write_to_fp(mp3_buf)
             mp3_buf.seek(0)
-            st.audio(mp3_buf.read(), format='audio/mp3')
+            mp3_bytes = mp3_buf.read()
+            # Streamlit 오디오 플레이어 (클릭 가능)
+            st.audio(mp3_bytes, format='audio/mp3')
+            # 자동 재생 HTML 오디오 태그 삽입
+            b64 = base64.b64encode(mp3_bytes).decode()
+            html_audio = '<audio autoplay><source src="data:audio/mp3;base64,' + b64 + '" type="audio/mp3"></audio>'
+            components.html(html_audio, height=0), format='audio/mp3')
 
             # 대화 기록 저장
             st.session_state.history.append({"user": user_text, "bot": bot_text})
