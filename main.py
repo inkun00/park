@@ -10,7 +10,7 @@ import streamlit.components.v1 as components
 # --------------------
 api_key = os.getenv("OPENAI_API_KEY", "")
 if not api_key:
-    api_key = st.text_input("🔑 OpenAI API Key (sk-...)", type="password")
+    api_key = st.text_input("선생님이 주신 코드를 입력하세요.", type="password")
 openai.api_key = api_key
 
 # ---------------
