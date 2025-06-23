@@ -90,7 +90,7 @@ if send_clicked and user_text:
     history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
     try:
         resp = openai.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1-mini-2025-04-14",
             messages=history,
             temperature=0.7,
             max_tokens=200,
