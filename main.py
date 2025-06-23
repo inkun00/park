@@ -73,7 +73,12 @@ st.markdown('</div>', unsafe_allow_html=True)
 # Input Field (Form)
 # -------------------
 with st.form("chat_form", clear_on_submit=True):
-    user_text = st.text_input("", key="msg_input", label_visibility="collapsed")
+    user_text = st.text_input(
+        "메시지를 입력하세요",
+        key="msg_input",
+        label_visibility="collapsed",
+        placeholder="메시지를 입력하세요",
+    )
     submitted = st.form_submit_button("Send")
 
 if submitted and user_text:
