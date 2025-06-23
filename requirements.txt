@@ -3,3 +3,4 @@ streamlit
 gTTS
 streamlit_webrtc
 streamlit_audiorecorder
+streamlit-audiorecorder
