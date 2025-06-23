@@ -2,5 +2,4 @@ openai
 streamlit
 gTTS
 streamlit_webrtc
-streamlit_audiorecorder
-streamlit-audiorecorder
+git+https://github.com/theevann/streamlit-audiorecorder.git@v0.0.6#egg=streamlit_audiorecorder
