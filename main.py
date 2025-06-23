@@ -41,7 +41,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []  # list of {role, content}
 
 if "human_name" not in st.session_state:
-    st.session_state.human_name = random.choice(["민수", "영호", "철수", "진호", "성민", "동훈"])
+    st.session_state.human_name = random.choice(["민수", "영호", "철수", "진호", "성민", "동훈", "재훈", "태수", "상현", "기석", "승우", "대현", "정호", "병철", "광민", "현우"] )
 
 # Insert system prompt once
 if not any(m["role"] == "system" for m in st.session_state.messages):
