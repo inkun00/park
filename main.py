@@ -5,16 +5,26 @@ import openai
 import streamlit as st
 import streamlit.components.v1 as components
 from gtts import gTTS
-import asyncio
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 
-# Asyncio event loop 초기화 (WebRTC 콜백 오류 방지)
-asyncio.set_event_loop(asyncio.new_event_loop())
+# streamlit-audiorecorder 설치 필요: pip install streamlit-audiorecorder
+from streamlit_audiorecorder import audiorecorder
+
+# OpenAI API 키 설정
+api_key = os.getenv("OPENAI_API_KEY")
+if api_key:
+    openai.api_key = api_key
+else:
+    input_key = st.text_input("OpenAI API Key를 입력하세요:", type="password")
+    if input_key:
+        openai.api_key = input_key
+        os.environ["OPENAI_API_KEY"] = input_key
+    else:
+        st.warning("API 키가 없습니다. 키를 입력해주세요.")
 
 
 def transcribe_audio(audio_bytes):
     """
-    Whisper API를 사용하여 입력된 오디오 바이트를 텍스트로 변환합니다.
+    Whisper API를 사용하여 오디오 바이트를 텍스트로 변환합니다.
     """
     audio_file = io.BytesIO(audio_bytes)
     transcription = openai.Audio.transcribe(
@@ -26,7 +36,7 @@ def transcribe_audio(audio_bytes):
 
 def chat_with_gpt(prompt, history):
     """
-    사용자 프롬프트와 대화 기록을 기반으로 GPT-3.5-turbo 모델을 통해 응답을 생성합니다.
+    GPT-3.5-turbo 모델로 대화 응답 생성
     """
     messages = []
     for turn in history:
@@ -42,52 +52,43 @@ def chat_with_gpt(prompt, history):
     )
     return response.choices[0].message.content.strip()
 
-
 # Streamlit 앱 설정
 st.set_page_config(page_title="Voice Chatbot: 박종철", layout="centered")
 st.header("음성 챗봇: 박종철 (1987년 대한민국)")
 
-# 중앙에 영상 재생 (assets/park_jongchul.mp4 필요)
+# 중앙 영상 재생
 st.video("assets/park_jongchul.mp4", format="video/mp4")
 
 # 대화 기록 초기화
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# RTC 설정 (STUN 서버 제거하여 오류 방지)
-rtc_configuration = RTCConfiguration({"iceServers": []})
-webrtc_ctx = webrtc_streamer(
-    key="voice-chat",
-    mode=WebRtcMode.SENDRECV,
-    rtc_configuration=rtc_configuration,
-    media_stream_constraints={"audio": True, "video": False},
-    audio_receiver_size=1024
-)
+# 오디오 녹음 컴포넌트
+st.subheader("마이크를 눌러 음성을 녹음하세요")
+audio_bytes = audiorecorder()
 
-# 음성 수신 및 처리
-if webrtc_ctx.audio_receiver:
-    frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
-    if frames:
-        audio_bytes = b"".join(frame.to_ndarray().tobytes() for frame in frames)
-        user_text = transcribe_audio(audio_bytes)
-        if user_text:
-            st.markdown(f"**User:** {user_text}")
-            bot_text = chat_with_gpt(user_text, st.session_state.history)
-            st.markdown(f"**Bot:** {bot_text}")
+if audio_bytes:
+    # Whisper로 텍스트 변환
+    user_text = transcribe_audio(audio_bytes)
+    st.markdown(f"**User:** {user_text}")
+    # 챗봇 응답 생성
+    bot_text = chat_with_gpt(user_text, st.session_state.history)
+    st.markdown(f"**Bot:** {bot_text}")
 
-            # TTS 생성 및 자동 재생
-            tts = gTTS(bot_text, lang='ko')
-            mp3_buf = io.BytesIO()
-            tts.write_to_fp(mp3_buf)
-            mp3_buf.seek(0)
-            mp3_bytes = mp3_buf.read()
-            st.audio(mp3_bytes, format='audio/mp3')
-            b64 = base64.b64encode(mp3_bytes).decode()
-            html_audio = '<audio autoplay><source src="data:audio/mp3;base64,' + b64 + '" type="audio/mp3"></audio>'
-            components.html(html_audio, height=0)
+    # TTS 음성 출력
+    tts = gTTS(bot_text, lang='ko')
+    mp3_buf = io.BytesIO()
+    tts.write_to_fp(mp3_buf)
+    mp3_buf.seek(0)
+    mp3_bytes = mp3_buf.read()
+    st.audio(mp3_bytes, format='audio/mp3')
+    # 자동 재생 HTML 태그 삽입
+    b64 = base64.b64encode(mp3_bytes).decode()
+    html_audio = f'<audio autoplay><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>'
+    components.html(html_audio, height=0)
 
-            # 대화 기록 저장
-            st.session_state.history.append({"user": user_text, "bot": bot_text})
+    # 대화 이력 저장
+    st.session_state.history.append({"user": user_text, "bot": bot_text})
 
 # 대화 기록 표시 및 복사
 if st.session_state.history:
@@ -100,15 +101,3 @@ if st.session_state.history:
         js = f"<script>navigator.clipboard.writeText({escaped});</script>"
         components.html(js)
         st.success("대화 내용이 클립보드에 복사되었습니다.")
-
-# API 키 설정 및 입력
-api_key = os.getenv("OPENAI_API_KEY")
-if api_key:
-    openai.api_key = api_key
-else:
-    input_key = st.text_input("OpenAI API Key를 입력하세요:", type="password")
-    if input_key:
-        openai.api_key = input_key
-        os.environ["OPENAI_API_KEY"] = input_key
-    else:
-        st.warning("환경 변수 OPENAI_API_KEY가 설정되지 않았습니다.")
