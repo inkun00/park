@@ -24,35 +24,39 @@ def transcribe_audio(audio_bytes):
     """
     Whisper API(v1)로 오디오 바이트를 텍스트로 변환합니다.
     """
-    # BytesIO 객체에 파일명 속성을 지정해야 합니다.
-    audio_file = io.BytesIO(audio_bytes)
-    audio_file.name = "audio.wav"
-    # 새 API: openai.audio.transcriptions.create 사용
-    transcript = openai.audio.transcriptions.create(
-        model="whisper-1",
-        file=audio_file
-    )
-    # 반환된 Transcription 객체의 text 속성
-    return transcript.text.strip()
+    try:
+        audio_file = io.BytesIO(audio_bytes)
+        audio_file.name = "audio.wav"
+        transcript = openai.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file
+        )
+        return transcript.text.strip()
+    except openai.error.AuthenticationError:
+        st.error("유효하지 않은 OpenAI API 키입니다. 환경 변수 또는 입력하신 키를 확인해주세요.")
+        st.stop()
 
 
 def chat_with_gpt(prompt, history):
     """
-    GPT-3.5-turbo 모델로 대화 응답 생성
+    OpenAI chat.completions v1 API를 사용하여 GPT-3.5-turbo 모델로 대화 응답 생성
     """
-    messages = []
-    for turn in history:
-        messages.append({"role": "user", "content": turn["user"]})
-        messages.append({"role": "assistant", "content": turn["bot"]})
-    messages.append({"role": "user", "content": prompt})
-
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0.7,
-        max_tokens=150
-    )
-    return response.choices[0].message.content.strip()
+    try:
+        messages = []
+        for turn in history:
+            messages.append({"role": "user", "content": turn["user"]})
+            messages.append({"role": "assistant", "content": turn["bot"]})
+        messages.append({"role": "user", "content": prompt})
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=150
+        )
+        return response.choices[0].message.content.strip()
+    except openai.error.AuthenticationError:
+        st.error("유효하지 않은 OpenAI API 키입니다. 환경 변수 또는 입력하신 키를 확인해주세요.")
+        st.stop()
 
 # Streamlit 앱 설정
 st.set_page_config(page_title="Voice Chatbot: 박종철", layout="centered")
@@ -70,7 +74,7 @@ st.subheader("녹음 버튼을 눌러 음성을 녹음하세요")
 audio_data = st.audio_input("음성 녹음")
 
 if audio_data:
-    # 녹음된 바이트 데이터 획득
+    # Whisper로 텍스트 변환
     user_text = transcribe_audio(audio_data.getbuffer())
     st.markdown(f"**User:** {user_text}")
 
@@ -85,7 +89,7 @@ if audio_data:
     mp3_buf.seek(0)
     mp3_bytes = mp3_buf.read()
     st.audio(mp3_bytes, format='audio/mp3')
-    # 자동 재생을 위한 HTML 태그 삽입
+    # 자동 재생 HTML 태그 삽입
     b64 = base64.b64encode(mp3_bytes).decode()
     html_audio = f'<audio autoplay><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>'
     components.html(html_audio, height=0)
