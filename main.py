@@ -95,6 +95,14 @@ if st.session_state.history:
         components.html(js)
         st.success("대화 내용이 클립보드에 복사되었습니다.")
 
-# API 키 설정 확인
-if not os.getenv("OPENAI_API_KEY"):
-    st.warning("환경 변수 OPENAI_API_KEY가 설정되지 않았습니다. OpenAI API 키를 설정해주세요.")
+# API 키 설정 확인 및 입력
+api_key = os.getenv("OPENAI_API_KEY")
+if api_key:
+    openai.api_key = api_key
+else:
+    input_key = st.text_input("OpenAI API Key를 입력하세요:", type="password")
+    if input_key:
+        openai.api_key = input_key
+        os.environ["OPENAI_API_KEY"] = input_key
+    else:
+        st.warning("환경 변수 OPENAI_API_KEY가 설정되지 않았습니다.")
