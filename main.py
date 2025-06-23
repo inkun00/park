@@ -85,7 +85,7 @@ if webrtc_ctx.audio_receiver:
             # 자동 재생 HTML 오디오 태그 삽입
             b64 = base64.b64encode(mp3_bytes).decode()
             html_audio = '<audio autoplay><source src="data:audio/mp3;base64,' + b64 + '" type="audio/mp3"></audio>'
-            components.html(html_audio, height=0), format='audio/mp3')
+            components.html(html_audio, height=0)
 
             # 대화 기록 저장
             st.session_state.history.append({"user": user_text, "bot": bot_text})
