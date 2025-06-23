@@ -57,15 +57,18 @@ def chat_with_gpt(prompt: str, history: list[dict]) -> str:
 
 
 def speak(text: str) -> bytes:
-    """gpt‑4o TTS (20대 남성 톤: alloy) → MP3 bytes 반환."""
+    """gpt‑4o TTS (20대 남성 alloy 음색) → MP3 bytes."""
     try:
-        speech_resp = openai.audio.speech.create(
-            model="gpt-4o-audio-preview",  # 최신 TTS 프리뷰 모델
-            voice="alloy",                 # 자연스러운 젊은 남성 음색
+        audio_resp = openai.audio.speech.create(
+            model="gpt-4o-audio-preview",
+            voice="alloy",
             input=text,
-            format="mp3",
+            response_format="mp3",
         )
-        return bytes(speech_resp)  # BinaryContent -> bytes
+        return bytes(audio_resp)
+    except openai.AuthenticationError:
+        st.error("❌ OpenAI API Key가 올바르지 않습니다.")
+        st.stop()  # BinaryContent -> bytes
     except openai.AuthenticationError:
         st.error("❌ OpenAI API Key가 올바르지 않습니다.")
         st.stop()
