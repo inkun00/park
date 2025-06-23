@@ -5,20 +5,15 @@ import openai
 import streamlit as st
 import streamlit.components.v1 as components
 
-# --------------------
-# OpenAI API KEY SETUP
-# --------------------
+# --------------------  OpenAI API KEY --------------------
 api_key = os.getenv("OPENAI_API_KEY", "")
 if not api_key:
     api_key = st.text_input("🔑 OpenAI API Key (sk-...)", type="password")
 openai.api_key = api_key
 
-# ---------------
-# Streamlit Setup
-# ---------------
+# --------------------  Streamlit UI --------------------
 st.set_page_config(page_title="민주화 운동가와의 인터뷰", layout="centered")
 
-# KakaoTalk‑like CSS
 st.markdown(
     """
 <style>
@@ -32,16 +27,17 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<h2 style='text-align:center;'>🟡 KakaoTalk GPT‑4o 챗봇</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align:center;'>🟡 KakaoTalk GPT-4o 챗봇</h2>", unsafe_allow_html=True)
 
-# ------------------
-# Session State Init
-# ------------------
+# --------------------  Session State --------------------
 if "messages" not in st.session_state:
-    st.session_state.messages = []  # list of {role, content}
-
+    st.session_state.messages = []          # list of {role, content}
 if "human_name" not in st.session_state:
-    st.session_state.human_name = random.choice(["민수", "영호", "철수", "진호", "성민", "동훈", "재훈", "태수", "상현", "기석", "승우", "대현", "정호", "병철", "광민", "현우"] )
+    st.session_state.human_name = random.choice(
+        ["민수", "영호", "철수", "진호", "성민", "동훈",
+         "재훈", "태수", "상현", "기석", "승우", "대현",
+         "정호", "병철", "광민", "현우"]
+    )
 
 # Insert system prompt once
 if not any(m["role"] == "system" for m in st.session_state.messages):
@@ -53,32 +49,38 @@ if not any(m["role"] == "system" for m in st.session_state.messages):
     )
     st.session_state.messages.insert(0, {"role": "system", "content": sys_prompt})
 
-# --------------
-# Chat Container
-# --------------
+# --------------------  Chat Display --------------------
 st.markdown('<div id="chat-box">', unsafe_allow_html=True)
-for m in st.session_state.messages:
-    if m["role"] == "system":
-        continue
-    cls = "user" if m["role"] == "user" else "bot"
-    st.markdown(f'<div class="message {cls}"><div class="bubble">{m["content"]}</div></div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+for msg in st.session_state.messages:
+    if msg["role"] == "system":
+        continue  # hide system prompt
+    cls = "user" if msg["role"] == "user" else "bot"
+    st.markdown(
+        f'<div class="message {cls}"><div class="bubble">{msg["content"]}</div></div>',
+        unsafe_allow_html=True
+    )
+st.markdown("</div>", unsafe_allow_html=True)
 
-# -------------------
-# Input + Buttons Form
-# -------------------
+# --------------------  Input Form --------------------
 with st.form("chat_form", clear_on_submit=True):
-    cols = st.columns([6,1,1])
-    user_text = cols[0].text_input("메시지를 입력하세요", key="msg_input", label_visibility="collapsed", placeholder="메시지를 입력하세요")
+    cols = st.columns([6, 1, 1])                             # input | Send | Copy
+    user_text = cols[0].text_input(
+        "메시지를 입력하세요",
+        key="msg_input",
+        label_visibility="collapsed",
+        placeholder="메시지를 입력하세요",
+    )
     send_clicked = cols[1].form_submit_button("Send")
     copy_clicked = cols[2].form_submit_button("Copy")
 
+# ----------  Send Logic ----------
 if send_clicked and user_text:
-    # Add user message
     st.session_state.messages.append({"role": "user", "content": user_text})
 
-    # Prepare history for API
-    history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
+    history = [
+        {"role": m["role"], "content": m["content"]}
+        for m in st.session_state.messages
+    ]
     try:
         resp = openai.chat.completions.create(
             model="gpt-4o",
@@ -93,22 +95,23 @@ if send_clicked and user_text:
     st.session_state.messages.append({"role": "assistant", "content": bot_reply})
     st.rerun()
 
-# Copy conversation to clipboard
+# ----------  Copy Logic ----------
 if copy_clicked:
-    # Build conversation text (exclude system prompt)
     convo_lines = []
     for m in st.session_state.messages:
         if m["role"] == "system":
             continue
         speaker = "사용자" if m["role"] == "user" else st.session_state.human_name
         convo_lines.append(f"{speaker}: {m['content']}")
-    convo_text = "\n".join(convo_lines)
+    convo_text = "\\n".join(convo_lines)
 
-    # Use JS to copy to clipboard
+    # JavaScript to copy from parent window (avoids sandbox restriction)
     components.html(
-        f'''<script>
-        navigator.clipboard.writeText({json.dumps(convo_text)});
-        </script>''',
+        f"""
+        <script>
+        window.parent.navigator.clipboard.writeText({json.dumps(convo_text)});
+        </script>
+        """,
         height=0,
     )
     st.success("대화 내용이 클립보드에 복사되었습니다.")
