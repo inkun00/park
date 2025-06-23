@@ -2,12 +2,10 @@ import os
 import io
 import json
 import openai
+import base64
 import streamlit as st
 import streamlit.components.v1 as components
 from gtts import gTTS
-
-# streamlit-audiorecorder 설치 필요: pip install streamlit-audiorecorder
-from audio_recorder_streamlit import audio_recorder
 
 # OpenAI API 키 설정
 api_key = os.getenv("OPENAI_API_KEY")
@@ -63,14 +61,15 @@ st.video("assets/park_jongchul.mp4", format="video/mp4")
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# 오디오 녹음 컴포넌트
-st.subheader("마이크를 눌러 음성을 녹음하세요")
-audio_bytes = audio_recorder()
+# 오디오 입력 (Streamlit v1.25+ 내장 기능)
+st.subheader("녹음 버튼을 눌러 음성을 녹음하세요")
+audio_data = st.audio_input("음성 녹음")  # 브라우저에서 녹음
 
-if audio_bytes:
+if audio_data:
     # Whisper로 텍스트 변환
-    user_text = transcribe_audio(audio_bytes)
+    user_text = transcribe_audio(audio_data.getbuffer())
     st.markdown(f"**User:** {user_text}")
+
     # 챗봇 응답 생성
     bot_text = chat_with_gpt(user_text, st.session_state.history)
     st.markdown(f"**Bot:** {bot_text}")
