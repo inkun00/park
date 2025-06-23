@@ -27,7 +27,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<h2 style='text-align:center;'>🟡 KakaoTalk GPT-4o 챗봇</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align:center;'>민주화 운동가와의 인터뷰</h2>", unsafe_allow_html=True)
 
 # --------------------  Session State --------------------
 if "messages" not in st.session_state:
