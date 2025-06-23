@@ -95,10 +95,20 @@ if send_clicked and user_text:
 
 # Copy conversation to clipboard
 if copy_clicked:
-    convo = "
-".join(
-        [f"사용자: {m['content']}" if m["role"] == "user" else f"{st.session_state.human_name}: {m['content']}" for m in st.session_state.messages if m["role"] != "system"]
+    # Build conversation text (exclude system prompt)
+    convo_lines = []
+    for m in st.session_state.messages:
+        if m["role"] == "system":
+            continue
+        speaker = "사용자" if m["role"] == "user" else st.session_state.human_name
+        convo_lines.append(f"{speaker}: {m['content']}")
+    convo_text = "\n".join(convo_lines)
+
+    # Use JS to copy to clipboard
+    components.html(
+        f'''<script>
+        navigator.clipboard.writeText({json.dumps(convo_text)});
+        </script>''',
+        height=0,
     )
-    js = f'<script>navigator.clipboard.writeText({json.dumps(convo)});</script>'
-    components.html(js, height=0)
-    st.success("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")
+    st.success("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")("대화 내용이 클립보드에 복사되었습니다.")
