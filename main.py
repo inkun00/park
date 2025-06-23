@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 from gtts import gTTS
 
 # streamlit-audiorecorder 설치 필요: pip install streamlit-audiorecorder
-from streamlit_audiorecorder import audiorecorder
+from audio_recorder_streamlit import audio_recorder
 
 # OpenAI API 키 설정
 api_key = os.getenv("OPENAI_API_KEY")
@@ -65,7 +65,7 @@ if 'history' not in st.session_state:
 
 # 오디오 녹음 컴포넌트
 st.subheader("마이크를 눌러 음성을 녹음하세요")
-audio_bytes = audiorecorder()
+audio_bytes = audio_recorder()
 
 if audio_bytes:
     # Whisper로 텍스트 변환
