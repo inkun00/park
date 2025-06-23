@@ -22,14 +22,18 @@ else:
 
 def transcribe_audio(audio_bytes):
     """
-    Whisper API를 사용하여 오디오 바이트를 텍스트로 변환합니다.
+    Whisper API(v1)로 오디오 바이트를 텍스트로 변환합니다.
     """
+    # BytesIO 객체에 파일명 속성을 지정해야 합니다.
     audio_file = io.BytesIO(audio_bytes)
-    transcription = openai.Audio.transcribe(
+    audio_file.name = "audio.wav"
+    # 새 API: openai.audio.transcriptions.create 사용
+    transcript = openai.audio.transcriptions.create(
         model="whisper-1",
         file=audio_file
     )
-    return transcription["text"].strip()
+    # 반환된 Transcription 객체의 text 속성
+    return transcript.text.strip()
 
 
 def chat_with_gpt(prompt, history):
@@ -54,39 +58,39 @@ def chat_with_gpt(prompt, history):
 st.set_page_config(page_title="Voice Chatbot: 박종철", layout="centered")
 st.header("음성 챗봇: 박종철 (1987년 대한민국)")
 
-# 중앙 영상 재생
+# 중앙에 영상 재생
 st.video("assets/park_jongchul.mp4", format="video/mp4")
 
 # 대화 기록 초기화
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# 오디오 입력 (Streamlit v1.25+ 내장 기능)
+# Streamlit 내장 오디오 입력 컴포넌트 (v1.25+)
 st.subheader("녹음 버튼을 눌러 음성을 녹음하세요")
-audio_data = st.audio_input("음성 녹음")  # 브라우저에서 녹음
+audio_data = st.audio_input("음성 녹음")
 
 if audio_data:
-    # Whisper로 텍스트 변환
+    # 녹음된 바이트 데이터 획득
     user_text = transcribe_audio(audio_data.getbuffer())
     st.markdown(f"**User:** {user_text}")
 
-    # 챗봇 응답 생성
+    # 챗봇 응답 생성 및 표시
     bot_text = chat_with_gpt(user_text, st.session_state.history)
     st.markdown(f"**Bot:** {bot_text}")
 
-    # TTS 음성 출력
+    # TTS 생성 및 재생
     tts = gTTS(bot_text, lang='ko')
     mp3_buf = io.BytesIO()
     tts.write_to_fp(mp3_buf)
     mp3_buf.seek(0)
     mp3_bytes = mp3_buf.read()
     st.audio(mp3_bytes, format='audio/mp3')
-    # 자동 재생 HTML 태그 삽입
+    # 자동 재생을 위한 HTML 태그 삽입
     b64 = base64.b64encode(mp3_bytes).decode()
     html_audio = f'<audio autoplay><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>'
     components.html(html_audio, height=0)
 
-    # 대화 이력 저장
+    # 대화 기록 저장
     st.session_state.history.append({"user": user_text, "bot": bot_text})
 
 # 대화 기록 표시 및 복사
