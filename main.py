@@ -59,9 +59,14 @@ if not any(m["role"] == "system" for m in st.session_state.messages):
 # --------------
 st.markdown('<div id="chat-box">', unsafe_allow_html=True)
 for m in st.session_state.messages:
+    if m["role"] == "system":
+        continue  # 시스템 프롬프트는 표시하지 않음
     role = m["role"]
     cls = "user" if role == "user" else "bot"
-    st.markdown(f'<div class="message {cls}"><div class="bubble">{m["content"]}</div></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="message {cls}"><div class="bubble">{m["content"]}</div></div>',
+        unsafe_allow_html=True,
+    )
 st.markdown('</div>', unsafe_allow_html=True)
 
 # -------------------
@@ -92,4 +97,4 @@ if submitted and user_text:
     st.session_state.messages.append({"role": "assistant", "content": bot_reply})
 
     # Rerun to refresh chat display
-    st.rerun()
+    st.experimental_rerun()
