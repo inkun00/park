@@ -111,7 +111,7 @@ if copy_clicked:
     for m in st.session_state.messages:
         if m["role"] == "system":
             continue
-        speaker = "사용자" if m["role"] == "user" else st.session_state.human_name
+        speaker = "사용자" if m["role"] == "user" else st.session_state.profile["name"]
         convo_lines.append(f"{speaker}: {m['content']}")
     convo_text = "\n".join(convo_lines)
 
